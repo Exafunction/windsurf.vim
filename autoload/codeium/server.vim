@@ -31,6 +31,85 @@ endif
 
 let g:codeium_server_job = v:null
 
+function! s:DetectGlibcVersion() abort
+  if !has('unix') || has('mac')
+    return v:null
+  endif
+
+  try
+    try
+      let ldd_output = system('ldd --version 2>/dev/null')
+      if v:shell_error == 0
+        let match = matchlist(ldd_output, 'ldd (GNU libc) \(\d\+\.\d\+\)')
+        if !empty(match)
+          call codeium#log#Info('Detected glibc version via ldd: ' . match[1])
+          return match[1]
+        endif
+      endif
+    catch
+    endtry
+
+    try
+      let getconf_output = system('getconf GNU_LIBC_VERSION 2>/dev/null')
+      if v:shell_error == 0
+        let match = matchlist(getconf_output, 'glibc \(\d\+\.\d\+\)')
+        if !empty(match)
+          call codeium#log#Info('Detected glibc version via getconf: ' . match[1])
+          return match[1]
+        endif
+      endif
+    catch
+    endtry
+
+    try
+      let libc_output = system('/lib/x86_64-linux-gnu/libc.so.6 2>/dev/null')
+      if v:shell_error == 0
+        let match = matchlist(libc_output, 'GNU C Library.*release version \(\d\+\.\d\+\)')
+        if !empty(match)
+          call codeium#log#Info('Detected glibc version via libc.so.6: ' . match[1])
+          return match[1]
+        endif
+      endif
+    catch
+    endtry
+
+    call codeium#log#Warn('Could not detect glibc version using any method')
+    return v:null
+  catch
+    call codeium#log#Error('Error detecting glibc version: ' . v:exception)
+    return v:null
+  endtry
+endfunction
+
+function! s:CompareVersions(version1, version2) abort
+  let parts1 = split(a:version1, '\.')
+  let parts2 = split(a:version2, '\.')
+  
+  let major1 = str2nr(parts1[0])
+  let minor1 = str2nr(parts1[1])
+  let major2 = str2nr(parts2[0])
+  let minor2 = str2nr(parts2[1])
+  
+  if major1 != major2
+    return major1 < major2 ? -1 : 1
+  endif
+  
+  if minor1 != minor2
+    return minor1 < minor2 ? -1 : 1
+  endif
+  
+  return 0
+endfunction
+
+function! s:IsGlibcVersionLessOrEqual(target_version) abort
+  let current_version = s:DetectGlibcVersion()
+  if current_version is# v:null
+    return v:false
+  endif
+  
+  return s:CompareVersions(current_version, a:target_version) <= 0
+endfunction
+
 function! s:OnExit(result, status, on_complete_cb) abort
   let did_close = has_key(a:result, 'closed')
   if did_close
@@ -188,13 +267,20 @@ function! codeium#server#Start(...) abort
 
   let config = get(g:, 'codeium_server_config', {})
   if has_key(config, 'portal_url') && !empty(config.portal_url)
-    let response = system('curl -sL ' . config.portal_url . '/api/version')
-    if v:shell_error == '0'
-      let s:language_server_version = response
+    let has_old_glibc = s:IsGlibcVersionLessOrEqual('2.27')
+    if has_old_glibc
+      call codeium#log#Info('Using legacy language server version 1.46.0 for enterprise customer with glibc <= 2.27')
+      let s:language_server_version = '1.46.0'
       let s:language_server_sha = 'enterprise-' . s:language_server_version
     else
-      call codeium#log#Error('Failed to fetch version from ' . config.portal_url)
-      call codeium#log#Error(v:shell_error)
+      let response = system('curl -sL ' . config.portal_url . '/api/version')
+      if v:shell_error == '0'
+        let s:language_server_version = response
+        let s:language_server_sha = 'enterprise-' . s:language_server_version
+      else
+        call codeium#log#Error('Failed to fetch version from ' . config.portal_url)
+        call codeium#log#Error(v:shell_error)
+      endif
     endif
   endif
 
