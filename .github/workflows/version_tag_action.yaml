@@ -13,7 +13,7 @@ jobs:
         uses: actions/checkout@v2
       - name: Get version from file
         id: version
-        run: echo ::set-output name=version::$(grep -oP "(?<=s:language_server_version = ')[^']+" autoload/codeium/server.vim)
+        run: echo version=$(grep -oP "(?<=s:language_server_version = ')[^']+" autoload/codeium/server.vim | head -n1) >> $GITHUB_OUTPUT
       - name: Check if tag exists
         id: add_tag
         run: |
