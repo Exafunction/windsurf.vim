@@ -1,0 +1,146 @@
+*gemini.txt*	For Vim version 9.0.  Last change: 2023 May 16
+
+		  _  __ _           _
+		 / |/ _(_)_ __ ___| |
+		 | | |_| | '__/ __| |
+		 | |  _| | | | (__|_|
+		 |_|_| |_|_|  \___(_)
+
+==============================================================================
+CONTENTS						*gemini-contents*
+
+  1. Intro.................................... |gemini-intro|
+  2. Commands................................. |gemini-commands|
+  3. Configuration............................ |gemini-configuration|
+  4. Maps..................................... |gemini-maps|
+  5. Syntax Highlighting...................... |gemini-highlighting|
+
+==============================================================================
+INTRO						*gemini-intro*
+
+Gemini is a free, fast and unobtrusive AI code completion tool that works
+in Vim and Neovim.
+
+==============================================================================
+COMMANDS					*gemini-commands*
+
+							*:Gemini*
+:Gemini {cmd}
+		Main command for interacting with Gemini.  Possible values for
+		{cmd} are:
+		Auth			   Authorize this plugin.
+		Enable			   Enable Gemini.
+		Disable			   Disable Gemini.
+		Toggle			   Toggle Gemini.
+		ManualEnable		   Enable manual suggestions.
+		ManualDisable		   Disable manual suggestions.
+		Chat			   Launch Gemini Chat.
+
+==============================================================================
+CONFIGURATION					*gemini-configuration*
+
+							*g:gemini_enabled*
+g:gemini_enabled
+		When set to |v:false|, Gemini is disabled by default. It can
+		be enabled per-buffer with |:GeminiEnable|.
+
+							*g:gemini_filetypes_disabled_by_default*
+g:gemini_filetypes_disabled_by_default
+		When set to |v:true|, Gemini is disabled by default for all filetypes.
+		It can be enabled for specific filetypes with |g:gemini_filetypes|.
+
+							*g:gemini_filetypes*
+g:gemini_filetypes
+		A |Dictionary| of filetypes to enable or disable Gemini for.
+		For example:
+			let g:gemini_filetypes = {
+			    \ "bash": v:false,
+			    \ "typescript": v:true,
+			    \ }
+		This will disable Gemini for bash files and enable it for
+		typescript files.
+
+							*g:gemini_disable_bindings*
+g:gemini_disable_bindings
+		When set to 1, all default keybindings are disabled.
+
+							*g:gemini_no_map_tab*
+g:gemini_no_map_tab
+		When set to 1, the <Tab> keybinding is disabled.
+
+							*g:gemini_manual*
+g:gemini_manual
+		When set to |v:true|, Gemini will not automatically trigger
+		completions. You can still trigger them manually with
+		|<Plug>(gemini-complete)|.
+
+							*g:gemini_render*
+g:gemini_render
+		When set to |v:false|, Gemini will not render completions
+		inline. You can still cycle through them and accept them.
+
+							*g:gemini_idle_delay*
+g:gemini_idle_delay
+		The delay in milliseconds before Gemini will trigger a
+		completion. Defaults to 75.
+
+							*g:gemini_log_level*
+g:gemini_log_level
+		The log level for Gemini. Possible values are "ERROR", "WARN",
+		"INFO", "DEBUG", and "TRACE". Defaults to "WARN".
+
+							*g:gemini_server_config*
+g:gemini_server_config
+		A |Dictionary| of server configuration options. For example:
+			let g:gemini_server_config = {
+			    \ "portal_url": "https://gemini.example.com",
+			    \ "api_url": "https://server.gemini.example.com"
+			    \ }
+		This will configure Gemini to use a custom server.
+
+							*g:gemini_log_file*
+g:gemini_log_file
+		The path to the log file. Defaults to a temporary file.
+
+							*g:gemini_virtual_text_priority*
+g:gemini_virtual_text_priority
+		The priority of the virtual text. Defaults to 65535. Only works in
+		neovim. This is useful if you want to use Gemini with other plugins
+		that use virtual text, like |LSP|.
+
+							*b:gemini_virtual_text_priority*
+b:gemini_virtual_text_priority
+		Same as |g:gemini_virtual_text_priority|, but for the current
+		buffer. If this is not set, |g:gemini_virtual_text_priority| is used.
+		For example:
+			let b:gemini_virtual_text_priority = 1000
+
+==============================================================================
+MAPS						*gemini-maps*
+
+							*gemini-i_<Tab>*
+This plugin maps <Tab> to accept the current suggestion. This will fall back
+to any existing <Tab> mapping you have. This is bound to `gemini#Accept()`
+and can be remapped. See |g:gemini_no_map_tab| to disable this mapping.
+
+							*gemini-i_CTRL-]*
+This plugin maps <C-]> to dismiss the current suggestion. This is bound to
+<Plug>(gemini-dismiss)
+<Cmd>call gemini#Clear()<CR>
+
+							*gemini-i_ALT-]*
+This plugin maps <M-]> to cycle to the next suggestion. This is bound to
+<Plug>(gemini-next)
+<Cmd>call gemini#CycleCompletions(1)<CR>
+
+							*gemini-i_ALT-[*
+This plugin maps <M-[> to cycle to the previous suggestion. This is bound to
+<Plug>(gemini-previous)
+<Cmd>call gemini#CycleCompletions(-1)<CR>
+
+==============================================================================
+SYNTAX HIGHLIGHTING				*gemini-highlighting*
+
+This plugin defines the `GeminiSuggestion` highlight group. You can
+customize this to your liking. For example:
+	highlight link GeminiSuggestion Comment

@@ -1,11 +1,11 @@
-if exists('g:loaded_codeium')
+if exists('g:loaded_gemini')
   finish
 endif
-let g:loaded_codeium = 1
+let g:loaded_gemini = 1
 
-command! -nargs=? -complete=customlist,codeium#command#Complete Codeium exe codeium#command#Command(<q-args>)
+command! -nargs=? -complete=customlist,gemini#command#Complete Gemini exe gemini#command#Command(<q-args>)
 
-if !codeium#util#HasSupportedVersion()
+if !gemini#util#HasSupportedVersion()
     finish
 endif
 

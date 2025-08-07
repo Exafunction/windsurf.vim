@@ -25,11 +25,11 @@ if !exists('s:editor_version')
 endif
 
 let s:server_port = v:null
-if codeium#util#IsUsingRemoteChat()
+if gemini#util#IsUsingRemoteChat()
   let s:server_port = 42100
 endif
 
-let g:codeium_server_job = v:null
+let g:gemini_server_job = v:null
 
 function! s:DetectGlibcVersion() abort
   if !has('unix') || has('mac')
@@ -42,7 +42,7 @@ function! s:DetectGlibcVersion() abort
       if v:shell_error == 0
         let match = matchlist(ldd_output, 'ldd (GNU libc) \(\d\+\.\d\+\)')
         if !empty(match)
-          call codeium#log#Info('Detected glibc version via ldd: ' . match[1])
+          call gemini#log#Info('Detected glibc version via ldd: ' . match[1])
           return match[1]
         endif
       endif
@@ -54,7 +54,7 @@ function! s:DetectGlibcVersion() abort
       if v:shell_error == 0
         let match = matchlist(getconf_output, 'glibc \(\d\+\.\d\+\)')
         if !empty(match)
-          call codeium#log#Info('Detected glibc version via getconf: ' . match[1])
+          call gemini#log#Info('Detected glibc version via getconf: ' . match[1])
           return match[1]
         endif
       endif
@@ -66,17 +66,17 @@ function! s:DetectGlibcVersion() abort
       if v:shell_error == 0
         let match = matchlist(libc_output, 'GNU C Library.*release version \(\d\+\.\d\+\)')
         if !empty(match)
-          call codeium#log#Info('Detected glibc version via libc.so.6: ' . match[1])
+          call gemini#log#Info('Detected glibc version via libc.so.6: ' . match[1])
           return match[1]
         endif
       endif
     catch
     endtry
 
-    call codeium#log#Warn('Could not detect glibc version using any method')
+    call gemini#log#Warn('Could not detect glibc version using any method')
     return v:null
   catch
-    call codeium#log#Error('Error detecting glibc version: ' . v:exception)
+    call gemini#log#Error('Error detecting glibc version: ' . v:exception)
     return v:null
   endtry
 endfunction
@@ -134,9 +134,9 @@ endfunction
 function! s:NoopCallback(...) abort
 endfunction
 
-function! codeium#server#RequestMetadata() abort
+function! gemini#server#RequestMetadata() abort
   return {
-        \ 'api_key': codeium#command#ApiKey(),
+        \ 'api_key': gemini#command#ApiKey(),
         \ 'ide_name':  s:ide,
         \ 'ide_version':  s:ide_version,
         \ 'extension_name': 'vim',
@@ -144,7 +144,7 @@ function! codeium#server#RequestMetadata() abort
         \ }
 endfunction
 
-function! codeium#server#Request(type, data, ...) abort
+function! gemini#server#Request(type, data, ...) abort
   if s:server_port is# v:null
     throw 'Server port has not been properly initialized.'
   endif
@@ -188,7 +188,7 @@ function! s:FindPort(dir, timer) abort
   for name in readdir(a:dir)
     let path = a:dir . '/' . name
     if time - getftime(path) <= 5 && getftype(path) ==# 'file'
-      call codeium#log#Info('Found port: ' . name)
+      call gemini#log#Info('Found port: ' . name)
       let s:server_port = name
       call s:RequestServerStatus()
       call timer_stop(a:timer)
@@ -198,7 +198,7 @@ function! s:FindPort(dir, timer) abort
 endfunction
 
 function! s:RequestServerStatus() abort
-  call codeium#server#Request('GetStatus', {'metadata': codeium#server#RequestMetadata()}, function('s:HandleGetStatusResponse'))
+  call gemini#server#Request('GetStatus', {'metadata': gemini#server#RequestMetadata()}, function('s:HandleGetStatusResponse'))
 endfunction
 
 function! s:HandleGetStatusResponse(out, err, status) abort
@@ -213,28 +213,28 @@ function! s:HandleGetStatusResponse(out, err, status) abort
     endif
   else
     " Handle error if the status is not 0 or if there is stderr output
-    call codeium#log#Error(join(a:err, "\n"))
+    call gemini#log#Error(join(a:err, "\n"))
   endif
 endfunction
 
 function! s:SendHeartbeat(timer) abort
   try
-    call codeium#server#Request('Heartbeat', {'metadata': codeium#server#RequestMetadata()})
+    call gemini#server#Request('Heartbeat', {'metadata': gemini#server#RequestMetadata()})
   catch
-    call codeium#log#Exception()
+    call gemini#log#Exception()
   endtry
 endfunction
 
-function! codeium#server#Start(...) abort
-  let user_defined_codeium_bin = get(g:, 'codeium_bin', '')
+function! gemini#server#Start(...) abort
+  let user_defined_gemini_bin = get(g:, 'gemini_bin', '')
 
-  if user_defined_codeium_bin != '' && filereadable(user_defined_codeium_bin)
-    let s:bin = user_defined_codeium_bin
+  if user_defined_gemini_bin != '' && filereadable(user_defined_gemini_bin)
+    let s:bin = user_defined_gemini_bin
     call s:ActuallyStart()
     return
   endif
-  let user_defined_os = get(g:, 'codeium_os', '')
-  let user_defined_arch = get(g:, 'codeium_arch', '')
+  let user_defined_os = get(g:, 'gemini_os', '')
+  let user_defined_arch = get(g:, 'gemini_arch', '')
 
   if user_defined_os != '' && user_defined_arch != ''
     let os = user_defined_os
@@ -265,11 +265,11 @@ function! codeium#server#Start(...) abort
     let bin_suffix = 'windows_x64.exe'
   endif
 
-  let config = get(g:, 'codeium_server_config', {})
+  let config = get(g:, 'gemini_server_config', {})
   if has_key(config, 'portal_url') && !empty(config.portal_url)
     let has_old_glibc = s:IsGlibcVersionLessOrEqual('2.27')
     if has_old_glibc
-      call codeium#log#Info('Using legacy language server version 1.46.0 for enterprise customer with glibc <= 2.27')
+      call gemini#log#Info('Using legacy language server version 1.46.0 for enterprise customer with glibc <= 2.27')
       let s:language_server_version = '1.46.0'
       let s:language_server_sha = 'enterprise-' . s:language_server_version
     else
@@ -278,30 +278,30 @@ function! codeium#server#Start(...) abort
         let s:language_server_version = response
         let s:language_server_sha = 'enterprise-' . s:language_server_version
       else
-        call codeium#log#Error('Failed to fetch version from ' . config.portal_url)
-        call codeium#log#Error(v:shell_error)
+        call gemini#log#Error('Failed to fetch version from ' . config.portal_url)
+        call gemini#log#Error(v:shell_error)
       endif
     endif
   endif
 
-  let sha = get(codeium#command#LoadConfig(codeium#command#XdgConfigDir()), 'sha', s:language_server_sha)
-  let bin_dir = codeium#command#HomeDir() . '/bin/' . sha
+  let sha = get(gemini#command#LoadConfig(gemini#command#XdgConfigDir()), 'sha', s:language_server_sha)
+  let bin_dir = gemini#command#HomeDir() . '/bin/' . sha
   let s:bin = bin_dir . '/language_server_' . bin_suffix
   call mkdir(bin_dir, 'p')
 
   if !filereadable(s:bin)
     call delete(s:bin)
     if sha ==# s:language_server_sha
-      let config = get(g:, 'codeium_server_config', {})
+      let config = get(g:, 'gemini_server_config', {})
       if has_key(config, 'portal_url') && !empty(config.portal_url)
         let base_url = config.portal_url
       else
-        let base_url = 'https://github.com/Exafunction/codeium/releases/download'
+        let base_url = 'https://github.com/Exafunction/gemini/releases/download'
       endif
       let base_url = substitute(base_url, '/\+$', '', '')
       let url = base_url . '/language-server-v' . s:language_server_version . '/language_server_' . bin_suffix . '.gz'
     else
-      let url = 'https://storage.googleapis.com/exafunction-dist/codeium/' . sha . '/language_server_' . bin_suffix . '.gz'
+      let url = 'https://storage.googleapis.com/exafunction-dist/gemini/' . sha . '/language_server_' . bin_suffix . '.gz'
     endif
     let args = ['curl', '-Lo', s:bin . '.gz', url]
     if has('nvim')
@@ -339,39 +339,39 @@ function! s:UnzipAndStart(status) abort
     let &shellredir = old_shellredir
   else
     if !executable('gzip')
-      call codeium#log#Error('Failed to extract language server binary: missing `gzip`.')
+      call gemini#log#Error('Failed to extract language server binary: missing `gzip`.')
       return ''
     endif
     call system('gzip -d ' . s:bin . '.gz')
     call system('chmod +x ' . s:bin)
   endif
   if !filereadable(s:bin)
-    call codeium#log#Error('Failed to download language server binary.')
+    call gemini#log#Error('Failed to download language server binary.')
     return ''
   endif
   call s:ActuallyStart()
 endfunction
 
 function! s:ActuallyStart() abort
-  let config = get(g:, 'codeium_server_config', {})
-  let chat_ports = get(g:, 'codeium_port_config', {})
-  let manager_dir = tempname() . '/codeium/manager'
+  let config = get(g:, 'gemini_server_config', {})
+  let chat_ports = get(g:, 'gemini_port_config', {})
+  let manager_dir = tempname() . '/gemini/manager'
   call mkdir(manager_dir, 'p')
   let args = [
         \ s:bin,
-        \ '--api_server_url', get(config, 'api_url', 'https://server.codeium.com'),
+        \ '--api_server_url', get(config, 'api_url', 'https://server.gemini.com'),
         \ '--enable_local_search', '--enable_index_service', '--search_max_workspace_file_count', '5000',
         \ '--enable_chat_web_server', '--enable_chat_client'
         \ ]
   if has_key(config, 'api_url') && !empty(config.api_url)
     let args += ['--enterprise_mode']
-    let args += ['--portal_url', get(config, 'portal_url', 'https://codeium.example.com')]
+    let args += ['--portal_url', get(config, 'portal_url', 'https://gemini.example.com')]
   endif
-  if !codeium#util#IsUsingRemoteChat()
+  if !gemini#util#IsUsingRemoteChat()
     let args += ['--manager_dir', manager_dir]
   endif
-  " If either of these is set, only one vim window (with any number of buffers) will work with Codeium.
-  " Opening other vim windows won't be able to use Codeium features.
+  " If either of these is set, only one vim window (with any number of buffers) will work with Gemini.
+  " Opening other vim windows won't be able to use Gemini features.
   if has_key(chat_ports, 'web_server') && !empty(chat_ports.web_server)
     let args += ['--chat_web_server_port', chat_ports.web_server]
   endif
@@ -379,18 +379,18 @@ function! s:ActuallyStart() abort
     let args += ['--chat_client_port', chat_ports.chat_client]
   endif
 
-  call codeium#log#Info('Launching server with manager_dir ' . manager_dir)
+  call gemini#log#Info('Launching server with manager_dir ' . manager_dir)
   if has('nvim')
-    let g:codeium_server_job = jobstart(args, {
-                \ 'on_stderr': { channel, data, t -> codeium#log#Info('[SERVER] ' . join(data, "\n")) },
+    let g:gemini_server__job = jobstart(args, {
+                \ 'on_stderr': { channel, data, t -> gemini#log#Info('[SERVER] ' . join(data, "\n")) },
                 \ })
   else
-    let g:codeium_server_job = job_start(args, {
+    let g:gemini_server_job = job_start(args, {
                 \ 'out_mode': 'raw',
-                \ 'err_cb': { channel, data -> codeium#log#Info('[SERVER] ' . data) },
+                \ 'err_cb': { channel, data -> gemini#log#Info('[SERVER] ' . data) },
                 \ })
   endif
-  if !codeium#util#IsUsingRemoteChat()
+  if !gemini#util#IsUsingRemoteChat()
     call timer_start(500, function('s:FindPort', [manager_dir]), {'repeat': -1})
   endif
 

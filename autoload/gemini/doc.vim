@@ -85,7 +85,7 @@ let s:filetype_aliases = {
       \ 'text': 'plaintext',
       \ }
 
-function! codeium#doc#GetDocument(bufId, curLine, curCol) abort
+function! gemini#doc#GetDocument(bufId, curLine, curCol) abort
   let lines = getbufline(a:bufId, 1, '$')
   if getbufvar(a:bufId, '&endofline')
     call add(lines, '')
@@ -93,20 +93,20 @@ function! codeium#doc#GetDocument(bufId, curLine, curCol) abort
 
   let filetype = substitute(getbufvar(a:bufId, '&filetype'), '\..*', '', '')
   let language = get(s:filetype_aliases, empty(filetype) ? 'text' : filetype, filetype)
-  if empty(filetype) && get(g:, 'codeium_warn_filetype_missing', v:true)
-    call codeium#log#Warn('No filetype detected. This will affect completion quality.')
-    let g:codeium_warn_filetype_missing = v:false
+  if empty(filetype) && get(g:, 'gemini_warn_filetype_missing', v:true)
+    call gemini#log#Warn('No filetype detected. This will affect completion quality.')
+    let g:gemini_warn_filetype_missing = v:false
   endif
   let editor_language = empty(getbufvar(a:bufId, '&filetype')) ? 'unspecified' : getbufvar(a:bufId, '&filetype')
   let doc = {
-        \ 'text': join(lines, codeium#util#LineEndingChars()),
+        \ 'text': join(lines, gemini#util#LineEndingChars()),
         \ 'editor_language': editor_language,
         \ 'language': get(s:language_enum, language, 0),
         \ 'cursor_position': {'row': a:curLine - 1, 'col': a:curCol - 1},
         \ 'absolute_path_migrate_me_to_uri': fnamemodify(bufname(a:bufId), ':p'),
         \ }
 
-  let line_ending = codeium#util#LineEndingChars(v:null)
+  let line_ending = gemini#util#LineEndingChars(v:null)
   if line_ending isnot# v:null
     let doc.line_ending = line_ending
   endif
@@ -114,7 +114,7 @@ function! codeium#doc#GetDocument(bufId, curLine, curCol) abort
   return doc
 endfunction
 
-function! codeium#doc#GetEditorOptions() abort
+function! gemini#doc#GetEditorOptions() abort
   return {
       \ 'tab_size': shiftwidth(),
       \ 'insert_spaces': &expandtab ? v:true : v:false,

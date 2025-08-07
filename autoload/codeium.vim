@@ -83,7 +83,6 @@ function! s:CompletionInserter(current_completion, insert_text) abort
   else
     let cursor_text = "\<C-O>:exe 'go' line2byte(line('.'))+col('.')+(" . delta . ")\<CR>"
   endif
-  call codeium#server#Request('AcceptCompletion', {'metadata': codeium#server#RequestMetadata(), 'completion_id': current_completion.completion.completionId})
   return delete_range . insert_text . cursor_text
 endfunction
 
@@ -115,16 +114,30 @@ function! s:HandleCompletionsResult(out, err, status) abort
     let response_text = join(a:out, '')
     try
       let response = json_decode(response_text)
-      if get(response, 'code', v:null) isnot# v:null
-        call codeium#log#Error('Invalid response from language server')
-        call codeium#log#Error(response_text)
-        call codeium#log#Error('stderr: ' . join(a:err, ''))
-        call codeium#log#Exception()
+      let candidates = get(response, 'candidates', [])
+      if empty(candidates)
+        let b:_codeium_completions.items = []
+        let b:_codeium_completions.index = 0
+        let b:_codeium_status = 2
+        call s:RenderCurrentCompletion()
         return
       endif
-      let completionItems = get(response, 'completionItems', [])
-
-      let b:_codeium_completions.items = completionItems
+      let content = get(candidates[0], 'content', {})
+      let parts = get(content, 'parts', [])
+      if empty(parts)
+        let b:_codeium_completions.items = []
+        let b:_codeium_completions.index = 0
+        let b:_codeium_status = 2
+        call s:RenderCurrentCompletion()
+        return
+      endif
+      let text = get(parts[0], 'text', '')
+      let completionItem = {
+            \ 'completion': {
+            \   'text': text
+            \ }
+            \ }
+      let b:_codeium_completions.items = [completionItem]
       let b:_codeium_completions.index = 0
 
       let b:_codeium_status = 2
@@ -389,7 +402,7 @@ function! codeium#Complete(...) abort
 
   try
     let b:_codeium_status = 1
-    let request_job = codeium#server#Request('GetCompletions', data, function('s:HandleCompletionsResult', []))
+    let request_job = gemini#GetCompletions(data, function('s:HandleCompletionsResult', []))
 
     let b:_codeium_completions = {
           \ 'request_data': request_data,

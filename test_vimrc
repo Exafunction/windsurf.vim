@@ -1,0 +1,12 @@
+set rtp+=.
+set nocompatible
+
+" Set up Gemini
+let g:gemini_enabled = v:true
+let g:gemini_log_level = 'DEBUG'
+
+" Run Auth to set a dummy API key
+call gemini#command#Command('Auth')
+
+" Print the log file path
+echom "Log file: " . gemini#log#Logfile()
