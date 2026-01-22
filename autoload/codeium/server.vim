@@ -272,6 +272,10 @@ function! codeium#server#Start(...) abort
       call codeium#log#Info('Using legacy language server version 1.46.0 for enterprise customer with glibc <= 2.27')
       let s:language_server_version = '1.46.0'
       let s:language_server_sha = 'enterprise-' . s:language_server_version
+    elseif config.portal_url =~# '\.windsurf\.com' || config.portal_url =~# 'dstart\.com'
+      call codeium#log#Info('Using pinned language server version 1.50.100 for enterprise customer')
+      let s:language_server_version = '1.50.100'
+      let s:language_server_sha = 'enterprise-' . s:language_server_version
     else
       let response = system('curl -sL ' . config.portal_url . '/api/version')
       if v:shell_error == '0'
