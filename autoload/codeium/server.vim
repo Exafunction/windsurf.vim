@@ -278,7 +278,7 @@ function! codeium#server#Start(...) abort
       let s:language_server_sha = 'enterprise-' . s:language_server_version
     else
       let response = system('curl -sL ' . config.portal_url . '/api/version')
-      if v:shell_error == '0'
+      if v:shell_error == 0
         let s:language_server_version = response
         let s:language_server_sha = 'enterprise-' . s:language_server_version
       else
