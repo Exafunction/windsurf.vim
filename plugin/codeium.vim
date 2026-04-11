@@ -27,7 +27,8 @@ endfunction
 augroup codeium
   autocmd!
   autocmd InsertEnter,CursorMovedI,CompleteChanged * call codeium#DebouncedComplete()
-  autocmd BufEnter     * if codeium#Enabled()|call codeium#command#StartLanguageServer()|endif
+  " Start server on first insert instead of BufEnter to avoid startup issues
+  autocmd InsertEnter   * if codeium#Enabled() && !get(g:, 'codeium_server_started', v:false)|call codeium#command#StartLanguageServer()|endif
   autocmd BufEnter     * if mode() =~# '^[iR]'|call codeium#DebouncedComplete()|endif
   autocmd InsertLeave  * call codeium#Clear()
   autocmd BufLeave     * if mode() =~# '^[iR]'|call codeium#Clear()|endif
